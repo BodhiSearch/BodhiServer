@@ -52,14 +52,18 @@ async fn launch_server(host: Option<String>, port: Option<u16>) -> anyhow::Resul
   let port = port.unwrap_or_else(|| port_from_env_vars(std::env::var(ENV_BODHISERVER_PORT)));
   let ServerHandle { server, shutdown } = build_server(host, port).await?;
   let server_join = tokio::spawn(async move {
-    if let Err(err) = server.await {
-      tracing::error!(err = ?err, "Server error");
+    match server.await {
+      Ok(_) => Ok(()),
+      Err(err) => {
+        tracing::error!(err = ?err, "server encountered an error");
+        Err(err)
+      }
     }
   });
   tokio::spawn(async move {
     shutdown_signal().await;
     shutdown.send(()).unwrap();
   });
-  server_join.await?;
+  (server_join.await?)?;
   Ok(())
 }
