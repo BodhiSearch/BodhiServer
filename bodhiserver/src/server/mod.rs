@@ -3,7 +3,7 @@ mod shutdown;
 mod utils;
 use crate::server::app::build_app;
 pub use crate::server::shutdown::shutdown_signal;
-pub use crate::server::utils::{port_from_env_vars, DEFAULT_PORT};
+pub use crate::server::utils::{port_from_env_vars, DEFAULT_PORT, DEFAULT_PORT_STR, DEFAULT_HOST};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
