@@ -7,7 +7,6 @@ use std::{
   io::Write,
   path::PathBuf,
 };
-use tempdir::TempDir;
 use tokio::sync::Mutex;
 
 lazy_static! {
@@ -16,6 +15,7 @@ lazy_static! {
   pub static ref LLAMA_BACKEND_LOCK: Mutex<()> = Mutex::new(());
 }
 
+#[fixture]
 pub async fn tiny_llama() -> anyhow::Result<PathBuf> {
   let lock = INIT_LOCK.lock().await;
   let temp_dir = std::env::temp_dir().join("bodhiserver_test_data");
@@ -42,17 +42,4 @@ pub async fn tiny_llama() -> anyhow::Result<PathBuf> {
   }
   drop(lock);
   Ok(file_path)
-}
-
-#[fixture]
-pub fn empty_model(tmp_dir: PathBuf) -> PathBuf {
-  let empty_gguf = include_bytes!("../data/empty.gguf");
-  let model_path = tmp_dir.join("empty.gguf");
-  std::fs::write(&model_path, empty_gguf).unwrap();
-  model_path
-}
-
-#[fixture]
-pub fn tmp_dir() -> PathBuf {
-  TempDir::new("test_dir").unwrap().into_path()
 }
