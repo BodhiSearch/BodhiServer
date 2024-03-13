@@ -1,13 +1,12 @@
 use crate::llama_cpp::LlamaCpp;
 use crate::server::app::build_app;
-use llama_cpp_2::context::params::LlamaContextParams;
+use anyhow::Context;
 use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::LlamaModel;
 use std::future::Future;
-use std::num::NonZeroU32;
 use std::path::PathBuf;
 use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::task::{Context as TaskContext, Poll};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot::{self, Receiver, Sender};
 
@@ -41,6 +40,7 @@ pub struct Server {
   server_args: ServerArgs,
   ready: Sender<()>,
   rx: Receiver<()>,
+  model: Option<LlamaModel>,
 }
 
 impl Server {
@@ -49,12 +49,14 @@ impl Server {
       server_args,
       ready,
       rx,
+      model: None,
     }
   }
 
   pub async fn start(mut self) -> anyhow::Result<()> {
     if !self.server_args.lazy_load_model {
-      self.init_llama_backend().await?;
+      let model = self.init_llama_model().await?;
+      self.model = Some(model);
     }
     let app = build_app();
     let addr = format!("{}:{}", &self.server_args.host, &self.server_args.port);
@@ -67,17 +69,13 @@ impl Server {
     Ok(())
   }
 
-  pub async fn init_llama_backend(&mut self) -> anyhow::Result<()> {
+  pub async fn init_llama_model(&mut self) -> anyhow::Result<LlamaModel> {
     let llama_cpp = LlamaCpp::init()?;
     let params = LlamaModelParams::default();
     let llama_model =
-      LlamaModel::load_from_file(&llama_cpp.llama_backend, &self.server_args.model, &params)?;
-    let ctx_params = LlamaContextParams::default()
-      .with_n_ctx(NonZeroU32::new(2048))
-      .with_seed(1234);
-    let _ctx = llama_model.new_context(&llama_cpp.llama_backend, ctx_params)?;
-    // TODO: initialize the llama backend
-    Ok(())
+      LlamaModel::load_from_file(&llama_cpp.llama_backend, &self.server_args.model, &params)
+        .context("init_llama_model: loading model")?;
+    Ok(llama_model)
   }
 }
 
@@ -88,7 +86,7 @@ pub struct ShutdownWrapper {
 impl Future for ShutdownWrapper {
   type Output = ();
 
-  fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+  fn poll(mut self: Pin<&mut Self>, cx: &mut TaskContext<'_>) -> Poll<Self::Output> {
     match Pin::new(&mut self.rx).poll(cx) {
       Poll::Ready(_) => Poll::Ready(()),
       Poll::Pending => Poll::Pending,
