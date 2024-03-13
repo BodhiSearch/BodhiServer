@@ -1,5 +1,5 @@
 use bodhiserver::{
-  build_server, port_from_env_vars, server::ServerHandle, shutdown_signal, ServerArgs,
+  build_server_handle, port_from_env_vars, server::ServerHandle, shutdown_signal, ServerArgs,
   DEFAULT_HOST, DEFAULT_PORT_STR,
 };
 use clap::{Parser, Subcommand};
@@ -58,7 +58,12 @@ fn serve(host: Option<String>, port: Option<u16>, model: PathBuf) -> anyhow::Res
       model.display()
     ));
   }
-  let server_args = ServerArgs { host, port, model };
+  let server_args = ServerArgs {
+    host,
+    port,
+    model,
+    lazy_load_model: false,
+  };
   let runtime = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build();
@@ -70,7 +75,11 @@ fn serve(host: Option<String>, port: Option<u16>, model: PathBuf) -> anyhow::Res
 }
 
 async fn start_server(server_args: ServerArgs) -> anyhow::Result<()> {
-  let ServerHandle { server, shutdown } = build_server(server_args).await?;
+  let ServerHandle {
+    server,
+    shutdown,
+    ready_rx: _ready_rx,
+  } = build_server_handle(server_args)?;
   let server_join = tokio::spawn(async move {
     match server.start().await {
       Ok(()) => Ok(()),

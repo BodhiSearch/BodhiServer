@@ -1,4 +1,4 @@
-use bodhiserver::{build_server, ServerArgs, ServerHandle};
+use bodhiserver::{build_server_handle, ServerArgs, ServerHandle};
 use rstest::{fixture, rstest};
 use std::path::PathBuf;
 use tempdir::TempDir;
@@ -25,10 +25,15 @@ pub async fn test_build_server_ping(empty_model: PathBuf) -> anyhow::Result<()> 
     host,
     port,
     model: empty_model,
+    lazy_load_model: true,
   };
-  let ServerHandle { server, shutdown } = build_server(server_args.clone()).await?;
-  #[allow(clippy::redundant_async_block)]
+  let ServerHandle {
+    server,
+    shutdown,
+    ready_rx,
+  } = build_server_handle(server_args.clone())?;
   let join = tokio::spawn(server.start());
+  ready_rx.await?;
   let response = reqwest::get(format!(
     "http://{}:{}/ping",
     server_args.host, server_args.port
@@ -38,6 +43,14 @@ pub async fn test_build_server_ping(empty_model: PathBuf) -> anyhow::Result<()> 
   .await?;
   assert_eq!(response, "pong");
   shutdown.send(()).unwrap();
-  (join.await?)?;
+  let server_result = join.await?;
+  assert!(server_result.is_ok());
+  let response = reqwest::get(format!(
+    "http://{}:{}/ping",
+    server_args.host, server_args.port
+  ))
+  .await;
+  assert!(response.is_err());
+  assert!(reqwest::Error::is_connect(&response.unwrap_err()));
   Ok(())
 }
