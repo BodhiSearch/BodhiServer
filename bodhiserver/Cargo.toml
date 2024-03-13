@@ -11,6 +11,7 @@ anyhow = "1.0.81"
 axum = "0.7.4"
 clap = { version = "4.5.2", features = ["derive"] }
 dotenv = "0.15.0"
+llama-cpp-2 = "0.1.38"
 tokio = { version = "1.36.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = { version = "0.1.40", features = ["async-await", "log"] }
