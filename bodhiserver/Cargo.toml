@@ -18,6 +18,8 @@ tracing = { version = "0.1.40", features = ["async-await", "log"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [dev-dependencies]
+fs2 = "0.4.3"
+lazy_static = "1.4.0"
 rand = "0.8.5"
 reqwest = "0.11.25"
 rstest = "0.18.2"
