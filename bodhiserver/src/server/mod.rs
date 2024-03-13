@@ -3,20 +3,28 @@ mod shutdown;
 mod utils;
 use crate::server::app::build_app;
 pub use crate::server::shutdown::shutdown_signal;
-pub use crate::server::utils::{port_from_env_vars, DEFAULT_PORT, DEFAULT_PORT_STR, DEFAULT_HOST};
+pub use crate::server::utils::{port_from_env_vars, DEFAULT_HOST, DEFAULT_PORT, DEFAULT_PORT_STR};
 use std::future::Future;
+use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
+
+#[derive(Debug, Clone)]
+pub struct ServerArgs {
+  pub host: String,
+  pub port: u16,
+  pub model: PathBuf,
+}
 
 pub struct ServerHandle {
   pub server: axum::serve::WithGracefulShutdown<axum::Router, axum::Router, ShutdownWrapper>,
   pub shutdown: oneshot::Sender<()>,
 }
 
-pub async fn build_server(host: String, port: u16) -> anyhow::Result<ServerHandle> {
-  let addr = format!("{}:{}", host, port);
+pub async fn build_server(server_args: ServerArgs) -> anyhow::Result<ServerHandle> {
+  let addr = format!("{}:{}", server_args.host, server_args.port);
   let listener = TcpListener::bind(&addr).await?;
   let (tx, rx) = oneshot::channel::<()>();
   let app = build_app();

@@ -1,8 +1,9 @@
 use bodhiserver::{
-  build_server, port_from_env_vars, server::ServerHandle, shutdown_signal, DEFAULT_HOST,
-  DEFAULT_PORT_STR,
+  build_server, port_from_env_vars, server::ServerHandle, shutdown_signal, ServerArgs,
+  DEFAULT_HOST, DEFAULT_PORT_STR,
 };
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 static ENV_BODHISERVER_PORT: &str = "BODHISERVER_PORT";
@@ -23,6 +24,8 @@ enum Command {
     host: Option<String>,
     #[clap(short, default_value = DEFAULT_PORT_STR)]
     port: Option<u16>,
+    #[clap(short = 'm')]
+    model: PathBuf,
   },
 }
 
@@ -42,24 +45,32 @@ pub fn main() {
 fn start() -> anyhow::Result<()> {
   let cli = Cli::parse();
   match cli.command {
-    Command::Serve { host, port, .. } => serve(host, port),
+    Command::Serve { host, port, model } => serve(host, port, model),
   }
 }
 
-fn serve(host: Option<String>, port: Option<u16>) -> anyhow::Result<()> {
+fn serve(host: Option<String>, port: Option<u16>, model: PathBuf) -> anyhow::Result<()> {
   let host = host.unwrap_or_else(|| String::from(DEFAULT_HOST));
   let port = port.unwrap_or_else(|| port_from_env_vars(std::env::var(ENV_BODHISERVER_PORT)));
+  if !model.exists() {
+    anyhow::bail!(format!(
+      "model file does not exist at location: '{}'",
+      model.display()
+    ));
+  }
+  let server_args = ServerArgs { host, port, model };
   let runtime = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build();
+
   match runtime {
-    Ok(runtime) => runtime.block_on(async move { start_server(host, port).await }),
-    Err(err) => Err(anyhow::Error::new(err)),
+    Ok(runtime) => runtime.block_on(async move { start_server(server_args).await }),
+    Err(err) => Err(err.into()),
   }
 }
 
-async fn start_server(host: String, port: u16) -> anyhow::Result<()> {
-  let ServerHandle { server, shutdown } = build_server(host, port).await?;
+async fn start_server(server_args: ServerArgs) -> anyhow::Result<()> {
+  let ServerHandle { server, shutdown } = build_server(server_args).await?;
   let server_join = tokio::spawn(async move {
     match server.await {
       Ok(()) => Ok(()),
@@ -75,4 +86,18 @@ async fn start_server(host: String, port: u16) -> anyhow::Result<()> {
   });
   (server_join.await?)?;
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  #[test]
+  fn test_serve_fails_if_model_does_not_exist() {
+    let result = serve(None, None, PathBuf::from("non-existent-model"));
+    assert!(result.is_err());
+    assert_eq!(
+      result.unwrap_err().to_string(),
+      "model file does not exist at location: 'non-existent-model'"
+    );
+  }
 }
