@@ -1,5 +1,5 @@
 mod utils;
-use crate::utils::{llama_log_set, null_log_callback};
+use crate::utils::{test_server, TestServerHandle};
 use anyhow::Result;
 use bodhiserver::{build_server_handle, ServerArgs, ServerHandle};
 use rstest::rstest;
@@ -40,27 +40,14 @@ pub async fn test_build_server_ping(#[future] tiny_llama: Result<PathBuf>) -> an
 #[rstest]
 #[tokio::test]
 pub async fn test_build_server_with_model_load(
-  #[future] tiny_llama: Result<PathBuf>,
+  #[future] test_server: Result<TestServerHandle>,
 ) -> anyhow::Result<()> {
-  unsafe {
-    llama_log_set(null_log_callback, std::ptr::null_mut());
-  }
-  let _guard = LLAMA_BACKEND_LOCK.lock().await;
-  let host = String::from("127.0.0.1");
-  let port = rand::random::<u16>();
-  let server_args = ServerArgs {
-    host: host.clone(),
+  let TestServerHandle {
+    host,
     port,
-    model: tiny_llama.await?,
-    lazy_load_model: false,
-  };
-  let ServerHandle {
-    server,
     shutdown,
-    ready_rx,
-  } = build_server_handle(server_args)?;
-  let join = tokio::spawn(server.start());
-  ready_rx.await?;
+    join,
+  } = test_server.await?;
   let ping_endpoint = format!("http://{}:{}/ping", host, port);
   let response = reqwest::get(&ping_endpoint).await?.text().await?;
   assert_eq!(response, "pong");
