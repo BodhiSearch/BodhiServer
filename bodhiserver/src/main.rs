@@ -72,7 +72,7 @@ fn serve(host: Option<String>, port: Option<u16>, model: PathBuf) -> anyhow::Res
 async fn start_server(server_args: ServerArgs) -> anyhow::Result<()> {
   let ServerHandle { server, shutdown } = build_server(server_args).await?;
   let server_join = tokio::spawn(async move {
-    match server.await {
+    match server.start().await {
       Ok(()) => Ok(()),
       Err(err) => {
         tracing::error!(err = ?err, "server encountered an error");

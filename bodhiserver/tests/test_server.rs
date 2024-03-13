@@ -28,7 +28,7 @@ pub async fn test_build_server_ping(empty_model: PathBuf) -> anyhow::Result<()> 
   };
   let ServerHandle { server, shutdown } = build_server(server_args.clone()).await?;
   #[allow(clippy::redundant_async_block)]
-  let join = tokio::spawn(async move { server.await });
+  let join = tokio::spawn(server.start());
   let response = reqwest::get(format!(
     "http://{}:{}/ping",
     server_args.host, server_args.port
