@@ -4,6 +4,8 @@ use rstest::rstest;
 use std::path::PathBuf;
 use utils::{empty_model, tiny_llama, LLAMA_BACKEND_LOCK};
 
+use crate::utils::{llama_log_set, null_log_callback};
+
 #[rstest]
 #[tokio::test]
 pub async fn test_build_server_ping(empty_model: PathBuf) -> anyhow::Result<()> {
@@ -36,6 +38,9 @@ pub async fn test_build_server_ping(empty_model: PathBuf) -> anyhow::Result<()> 
 
 #[tokio::test]
 pub async fn test_build_server_with_model_load() -> anyhow::Result<()> {
+  unsafe {
+    llama_log_set(null_log_callback, std::ptr::null_mut());
+  }
   let _guard = LLAMA_BACKEND_LOCK.lock().await;
   let tiny_llama = tiny_llama().await?;
   let host = String::from("127.0.0.1");
