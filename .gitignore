@@ -16,3 +16,5 @@ Cargo.lock
 .env
 .env.*
 !.env.sample
+
+.DS_Store

@@ -1,7 +1,5 @@
 use crate::llama_cpp::LlamaCpp;
-use crate::server::app::build_app;
-use anyhow::Context;
-use llama_cpp_2::model::params::LlamaModelParams;
+use crate::server::routes::build_routes;
 use llama_cpp_2::model::LlamaModel;
 use std::future::Future;
 use std::path::PathBuf;
@@ -40,7 +38,6 @@ pub struct Server {
   server_args: ServerArgs,
   ready: Sender<()>,
   rx: Receiver<()>,
-  model: Option<LlamaModel>,
 }
 
 impl Server {
@@ -49,16 +46,17 @@ impl Server {
       server_args,
       ready,
       rx,
-      model: None,
     }
   }
 
   pub async fn start(mut self) -> anyhow::Result<()> {
-    if !self.server_args.lazy_load_model {
+    let model = if !self.server_args.lazy_load_model {
       let model = self.init_llama_model().await?;
-      self.model = Some(model);
-    }
-    let app = build_app();
+      Some(model)
+    } else {
+      None
+    };
+    let app = build_routes(model);
     let addr = format!("{}:{}", &self.server_args.host, &self.server_args.port);
     let listener = TcpListener::bind(&addr).await?;
     tracing::info!(addr = addr, "Server started");
@@ -71,10 +69,7 @@ impl Server {
 
   pub async fn init_llama_model(&mut self) -> anyhow::Result<LlamaModel> {
     let llama_cpp = LlamaCpp::init()?;
-    let params = LlamaModelParams::default();
-    let llama_model =
-      LlamaModel::load_from_file(&llama_cpp.llama_backend, &self.server_args.model, &params)
-        .context("init_llama_model: loading model")?;
+    let llama_model = llama_cpp.load_model(&self.server_args.model)?;
     Ok(llama_model)
   }
 }

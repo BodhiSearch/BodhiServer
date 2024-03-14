@@ -5,6 +5,7 @@ use axum::{
   routing::{get, post},
   Json,
 };
+use llama_cpp_2::model::LlamaModel;
 use serde_json::json;
 use tower_http::trace::TraceLayer;
 
@@ -28,11 +29,21 @@ impl IntoResponse for ApiError {
 
 type Result<T> = std::result::Result<T, ApiError>;
 
-pub(super) fn build_app() -> axum::Router {
+#[derive(Clone)]
+struct RouterState {}
+
+impl RouterState {
+  fn new() -> Self {
+    Self {}
+  }
+}
+
+pub(super) fn build_routes(_model: Option<LlamaModel>) -> axum::Router {
   axum::Router::new()
     .route("/ping", get(|| async { "pong" }))
     .route("/v1/chat/completions", post(chat_completions_handler))
     .layer(TraceLayer::new_for_http())
+    .with_state(RouterState::new())
 }
 
 async fn chat_completions_handler(
