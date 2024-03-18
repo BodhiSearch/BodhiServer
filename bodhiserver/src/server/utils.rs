@@ -1,6 +1,6 @@
-pub static DEFAULT_PORT: u16 = 5377;
+pub static DEFAULT_PORT: u16 = 7735;
 // TODO: see if can use lazy_static to not duplicate port
-pub static DEFAULT_PORT_STR: &str = "5377";
+pub static DEFAULT_PORT_STR: &str = "7735";
 pub static DEFAULT_HOST: &str = "127.0.0.1";
 
 pub fn port_from_env_vars(port: Result<String, std::env::VarError>) -> u16 {
