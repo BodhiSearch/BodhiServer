@@ -1,0 +1,42 @@
+[package]
+name = "llama-server-bindings"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/BodhiSearch/BodhiServer"
+
+include = [
+  "build.rs",
+  "/src",
+  "/llama.cpp/ggml.c",
+  "/llama.cpp/ggml.h",
+  "/llama.cpp/ggml-alloc.c",
+  "/llama.cpp/ggml-alloc.h",
+  "/llama.cpp/ggml-backend.c",
+  "/llama.cpp/ggml-backend.h",
+  "/llama.cpp/ggml-backend-impl.h",
+  "/llama.cpp/ggml-cuda.cu",
+  "/llama.cpp/ggml-cuda.h",
+  "/llama.cpp/ggml-impl.h",
+  "/llama.cpp/ggml-metal.m",
+  "/llama.cpp/ggml-metal.metal",
+  "/llama.cpp/ggml-metal.h",
+  "/llama.cpp/ggml-mpi.c",
+  "/llama.cpp/ggml-mpi.h",
+  "/llama.cpp/ggml-opencl.cpp",
+  "/llama.cpp/ggml-opencl.h",
+  "/llama.cpp/ggml-quants.c",
+  "/llama.cpp/ggml-quants.h",
+  "/llama.cpp/llama.cpp",
+  "/llama.cpp/llama.h",
+  "/llama.cpp/unicode.h",
+]
+
+[dependencies]
+
+[build-dependencies]
+bindgen = { workspace = true }
+cc = { workspace = true, features = ["parallel"] }
+
+[features]
+cublas = []

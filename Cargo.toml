@@ -1,7 +1,10 @@
 [workspace]
-members = ["bodhiserver"]
+members = ["bodhiserver", "llama-server-bindings"]
 resolver = "2"
 
+[workspace.dependencies]
+bindgen = "0.69.4"
+cc = "1.0.90"
 
 [profile.release.package.bodhiserver]
 codegen-units = 1
