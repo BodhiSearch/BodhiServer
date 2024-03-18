@@ -1,3 +1,4 @@
+use anyhow::Context;
 use bodhiserver::{
   build_server_handle, port_from_env_vars, server::ServerHandle, shutdown_signal, ServerArgs,
   DEFAULT_HOST, DEFAULT_PORT_STR,
@@ -91,7 +92,11 @@ async fn start_server(server_args: ServerArgs) -> anyhow::Result<()> {
   });
   tokio::spawn(async move {
     shutdown_signal().await;
-    shutdown.send(()).unwrap();
+    shutdown
+      .send(())
+      .map_err(|_| anyhow::anyhow!("error sending shutdown signal on channel"))
+      .context("sending shutdown signal to server")
+      .unwrap();
   });
   (server_join.await?)?;
   Ok(())

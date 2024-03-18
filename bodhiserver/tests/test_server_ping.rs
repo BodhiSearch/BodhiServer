@@ -28,7 +28,10 @@ pub async fn test_server_ping(#[future] tiny_llama: Result<PathBuf>) -> anyhow::
   let ping_endpoint = format!("http://{}:{}/ping", host, port);
   let response = reqwest::get(&ping_endpoint).await?.text().await?;
   assert_eq!(response, "pong");
-  shutdown.send(()).unwrap();
+  shutdown
+    .send(())
+    .map_err(|_| anyhow::anyhow!("error sending shutdown signal"))
+    .context("sending shutdown signal to server")?;
   let server_result = join.await?;
   assert!(server_result.is_ok());
   let response = reqwest::get(&ping_endpoint).await;
@@ -56,7 +59,10 @@ pub async fn test_server_ping_with_model_load(
     .await
     .context("parsing response")?;
   assert_eq!(response, "pong");
-  shutdown.send(()).unwrap();
+  shutdown
+    .send(())
+    .map_err(|_| anyhow::anyhow!("error sending shutdown signal"))
+    .context("sending shutdown signal to server")?;
   let server_result = join.await.context("waiting for server to stop")?;
   assert!(server_result.is_ok());
   let response = reqwest::get(&ping_endpoint).await;
