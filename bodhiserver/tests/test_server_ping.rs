@@ -1,6 +1,6 @@
 mod utils;
 use crate::utils::{test_server, TestServerHandle};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bodhiserver::{build_server_handle, ServerArgs, ServerHandle};
 use rstest::rstest;
 use std::path::PathBuf;
@@ -8,7 +8,7 @@ use utils::{tiny_llama, LLAMA_BACKEND_LOCK};
 
 #[rstest]
 #[tokio::test]
-pub async fn test_build_server_ping(#[future] tiny_llama: Result<PathBuf>) -> anyhow::Result<()> {
+pub async fn test_server_ping(#[future] tiny_llama: Result<PathBuf>) -> anyhow::Result<()> {
   let _guard = LLAMA_BACKEND_LOCK.lock().await;
   let port = rand::random::<u16>();
   let host = String::from("127.0.0.1");
@@ -39,7 +39,7 @@ pub async fn test_build_server_ping(#[future] tiny_llama: Result<PathBuf>) -> an
 
 #[rstest]
 #[tokio::test]
-pub async fn test_build_server_with_model_load(
+pub async fn test_server_ping_with_model_load(
   #[future] test_server: Result<TestServerHandle>,
 ) -> anyhow::Result<()> {
   let TestServerHandle {
@@ -47,12 +47,17 @@ pub async fn test_build_server_with_model_load(
     port,
     shutdown,
     join,
-  } = test_server.await?;
+  } = test_server.await.context("initializing server handle")?;
   let ping_endpoint = format!("http://{}:{}/ping", host, port);
-  let response = reqwest::get(&ping_endpoint).await?.text().await?;
+  let response = reqwest::get(&ping_endpoint)
+    .await
+    .context("querying server ping endpoint")?
+    .text()
+    .await
+    .context("parsing response")?;
   assert_eq!(response, "pong");
   shutdown.send(()).unwrap();
-  let server_result = join.await?;
+  let server_result = join.await.context("waiting for server to stop")?;
   assert!(server_result.is_ok());
   let response = reqwest::get(&ping_endpoint).await;
   assert!(response.is_err());
