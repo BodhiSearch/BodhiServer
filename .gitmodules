@@ -1,3 +1,6 @@
 [submodule "llama-server-bindings/llama.cpp"]
 	path = llama-server-bindings/llama.cpp
 	url = git@github.com:ggerganov/llama.cpp.git
+[submodule "llama-cpp-rs"]
+	path = llama-cpp-rs
+	url = git@github.com:anagri/llama-cpp-rs.git

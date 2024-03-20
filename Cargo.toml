@@ -1,12 +1,33 @@
 [workspace]
-members = ["bodhiserver", "llama-server-bindings"]
+members = [
+  "bodhiserver",
+  "llama-cpp-rs/llama-cpp-sys-2",
+  "llama-cpp-rs/llama-cpp-2",
+]
 resolver = "2"
 
 [workspace.dependencies]
+# core library deps
+thiserror = "1"
+tracing = "0.1"
+
+# examples and benchmarks
+hf-hub = { version = "0.3.2" }
+criterion = "0.5.1"
+pprof = "0.13.0"
 bindgen = "0.69.4"
 cc = "1.0.90"
+anyhow = "1.0.81"
+clap = "4.5.3"
 
 [profile.release.package.bodhiserver]
 codegen-units = 1
 strip = true
 opt-level = 3
+
+[workspace.lints.rust]
+missing_docs = { level = "warn" }
+missing_debug_implementations = { level = "warn" }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn" }
